@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./Backend-API
+    image: backend-api
+    container_name: Backend-cont
+    restart: unless-stopped # redémarre automatiquement le conteneur
+    env_file:
+      - .env
+    networks:
+      - app-network # réseau pour communiquer avec HTTP
+      - db-network # réseau pour communiquer avec la BD
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q 'UP' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    read_only: true # lecture seule : fichiers dans conteneur
+    tmpfs:
+      - /tmp # autorise un espace temporaire en mémoire pour les fichiers temporaires malgré le mode read-only
+    security_opt:
+      - no-new-privileges:true # empêche les processus d’obtenir plus de privilèges que ceux déjà attribués
+    
+  database:
+    build:
+      context: ./Database
+    image: database
+    container_name: Database-cont
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - db-network
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"] # vérifie que PostgreSQL accepte bien les connexions
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+
+  httpd:
+    build:
+      context: ./HTTP-server
+    image: http-server
+    container_name: HTTP-cont
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+
+networks:
+  app-network:
+    driver: bridge          # réseau bridge pour la communication entre le proxy HTTP et le backend
+  db-network:
+    driver: bridge          # réseau bridge séparé pour isoler la base de données
+    internal: true          # Rend ce réseau inaccessible depuis l’extérieur --> que entre conteneurs
+
+volumes:
+  db-data:
