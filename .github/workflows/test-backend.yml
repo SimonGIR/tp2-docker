@@ -20,6 +20,3 @@ jobs:
 
       - name: Build and test with Maven
         run: mvn clean verify --file ./simple-api/pom.xml
-
-      - name: Analyze with SonarCloud
-        run: mvn -B verify sonar:sonar -Dsonar.projectKey=SimonGIR_tp2-docker -Dsonar.organization=simongir -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./simple-api/pom.xml
