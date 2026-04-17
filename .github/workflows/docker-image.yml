@@ -2,7 +2,7 @@ name: Build - Push Docker Images
 
 on:
   workflow_run:
-    workflows: ["Test Backend"]
+    workflows: ["SonarCloud"]
     types:
       - completed
     branches:
@@ -23,7 +23,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./simple-api
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+          tags:
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
           push: true
 
   build-and-push-database:
@@ -40,7 +42,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./Database
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
+          tags: 
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
           push: true
 
   build-and-push-httpd:
@@ -57,5 +61,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./HTTP-server
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
+          tags: 
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
           push: true
