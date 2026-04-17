@@ -6,7 +6,6 @@ on:
     types:
       - completed
     branches:
-      - main
       - develop
 
 jobs:
@@ -19,13 +18,16 @@ jobs:
 
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
+      
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+        
       - name: Build image and push backend
         uses: docker/build-push-action@v6
         with:
           context: ./simple-api
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:v1.0.${{ github.run_number }}-sha-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
           push: true
 
@@ -39,12 +41,15 @@ jobs:
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
           context: ./Database
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:v1.0.${{ github.run_number }}-sha-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
           push: true
 
@@ -58,11 +63,14 @@ jobs:
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
           context: ./HTTP-server
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:v1.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:v1.0.${{ github.run_number }}-sha-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
           push: true
