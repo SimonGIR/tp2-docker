@@ -143,4 +143,4 @@ jobs:
       - name: Deploy with Ansible
         run: |
           cd ansible
-          ansible-playbook -i inventories/setup.yml playbook.yml
+          ansible-playbook -i inventories/setup.yml playbook.yml -e "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}"
