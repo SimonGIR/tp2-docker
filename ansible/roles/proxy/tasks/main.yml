@@ -1,0 +1,12 @@
+- name: Run HTTP proxy container
+  community.docker.docker_container:
+    name: httpd
+    image: simgir/tp-devops-http-server
+    pull: true
+    state: started
+    restart_policy: always
+    recreate: true
+    networks:
+      - name: app-network
+    published_ports:
+      - "80:80"

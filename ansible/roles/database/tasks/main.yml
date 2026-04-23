@@ -1,0 +1,14 @@
+- name: Run database container
+  community.docker.docker_container:
+    name: database
+    image: simgir/tp-devops-database
+    pull: true
+    state: started
+    restart_policy: always
+    recreate: true
+    networks:
+      - name: app-network
+    env:
+      POSTGRES_DB: db
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd

@@ -1,0 +1,16 @@
+- name: Run API container
+  community.docker.docker_container:
+    name: backend
+    image: simgir/tp-devops-simple-api
+    pull: true
+    state: started
+    restart_policy: always
+    recreate: true
+    networks:
+      - name: app-network
+    env:
+      DB_HOST: database
+      DB_PORT: "5432"
+      POSTGRES_DB: db
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd
