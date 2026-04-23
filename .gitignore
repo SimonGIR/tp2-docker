@@ -1,3 +1,7 @@
 .env
 tp-docker.docx
-.github/workflows/main.yml
+.github/workflows/main_v2.yml
+.github/workflows/deploy.yml
+.github/workflows/docker-image.yml
+.github/workflows/sonarcloud.yml
+.github/workflows/test-backend.yml

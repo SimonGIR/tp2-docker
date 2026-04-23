@@ -1,28 +1,49 @@
-name: Build - Push Docker Images
-
+name: CI devops 2025
 on:
-  workflow_run:
-    workflows: ["Test Backend"]
-    types:
-      - completed
-    branches:
-      - develop
+  push:
+    branches: 
       - main
+      - develop
+  pull_request:
 
 jobs:
-  build-and-push-backend:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  test-backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Build and test with Maven
+        run: mvn clean verify --file ./simple-api/pom.xml
+
+  sonarcloud:
+    needs: test-backend
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Analyze with SonarCloud
+        run: mvn -B verify sonar:sonar -Dsonar.projectKey=SimonGIR_tp2-docker -Dsonar.organization=simongir -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
 
+  build-and-push-backend:
+    needs: sonarcloud
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-      
       - name: Set short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-        
       - name: Build image and push backend
         uses: docker/build-push-action@v6
         with:
@@ -33,18 +54,15 @@ jobs:
           push: true
 
   build-and-push-database:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
       - name: Set short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
@@ -55,18 +73,15 @@ jobs:
           push: true
 
   build-and-push-httpd:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
       - name: Set short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
@@ -75,3 +90,31 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:v1.0.${{ github.run_number }}-sha-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
           push: true
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    needs:
+      - build-and-push-backend
+      - build-and-push-database
+      - build-and-push-httpd
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      - name: Add server to known_hosts
+        run: |
+          ssh-keyscan -H simon.girard.20240687.takima.school >> ~/.ssh/known_hosts
+      - name: Deploy with Ansible
+        run: |
+          cd ansible
+          ansible-playbook -i inventories/setup.yml playbook.yml
