@@ -1,7 +1,7 @@
 - name: Run HTTP proxy container
   community.docker.docker_container:
     name: httpd
-    image: simgir/tp-devops-http-server
+    image: "{{ DOCKERHUB_USERNAME }}/tp-devops-http-server:latest"
     pull: true
     state: started
     restart_policy: always

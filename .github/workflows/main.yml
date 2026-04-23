@@ -91,6 +91,28 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
           push: true
 
+  build-and-push-front:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Build image and push front
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front:v1.0.${{ github.run_number }}-sha-${{ env.SHORT_SHA }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front:latest
+
   deploy:
     name: Deploy
     runs-on: ubuntu-24.04
@@ -98,6 +120,7 @@ jobs:
       - build-and-push-backend
       - build-and-push-database
       - build-and-push-httpd
+      - build-and-push-front
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code

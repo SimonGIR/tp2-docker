@@ -1,7 +1,7 @@
 - name: Run database container
   community.docker.docker_container:
     name: database
-    image: simgir/tp-devops-database
+    image: "{{ DOCKERHUB_USERNAME }}/tp-devops-database:latest"
     pull: true
     state: started
     restart_policy: always

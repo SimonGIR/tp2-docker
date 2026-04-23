@@ -1,7 +1,7 @@
 - name: Run API container
   community.docker.docker_container:
     name: backend
-    image: simgir/tp-devops-simple-api
+    image: "{{ DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest"
     pull: true
     state: started
     restart_policy: always
