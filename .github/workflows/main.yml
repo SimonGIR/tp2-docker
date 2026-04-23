@@ -92,29 +92,32 @@ jobs:
           push: true
 
   deploy:
-    name: Deploy
-    runs-on: ubuntu-24.04
-    needs:
-      - build-and-push-backend
-      - build-and-push-database
-      - build-and-push-httpd
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-      - name: Add server to known_hosts
-        run: |
-          ssh-keyscan -H simon.girard.20240687.takima.school >> ~/.ssh/known_hosts
-      - name: Deploy with Ansible
-        run: |
-          cd ansible
-          ansible-playbook -i inventories/setup.yml playbook.yml
+  name: Deploy
+  runs-on: ubuntu-24.04
+  needs:
+    - build-and-push-backend
+    - build-and-push-database
+    - build-and-push-httpd
+  if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        printf "%s" "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+    - name: Add server to known_hosts
+      run: |
+        ssh-keyscan -H simon.girard.20240687.takima.school >> ~/.ssh/known_hosts
+    - name: Test SSH connection
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no admin@simon.girard.20240687.takima.school "echo OK"
+    - name: Deploy with Ansible
+      run: |
+        cd ansible
+        ansible-playbook -i inventories/setup.yml playbook.yml
