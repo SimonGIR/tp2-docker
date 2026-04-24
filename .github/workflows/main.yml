@@ -122,6 +122,7 @@ jobs:
       - build-and-push-httpd
       - build-and-push-front
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: prod
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
